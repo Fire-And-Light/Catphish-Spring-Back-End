@@ -1,13 +1,12 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy container app to Azure Web App - catphish-back-end
+name: Build and deploy Docker Spring Boot app to Azure Web App
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -16,6 +15,27 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Replace "${CATPHISH_DB_NAME}" with "${{ secrets.CATPHISH_DB_NAME }}"
+      run: sed -i 's/${CATPHISH_DB_NAME}/${{ secrets.CATPHISH_DB_NAME }}/' src/main/resources/application.properties
+
+    - name: Replace "${CATPHISH_DB_PASSWORD}" with "${{ secrets.CATPHISH_DB_PASSWORD }}"
+      run: sed -i 's/${CATPHISH_DB_PASSWORD}/${{ secrets.CATPHISH_DB_PASSWORD }}/' src/main/resources/application.properties
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
+
+    - name: Grant "execute" permission for "gradlew"
+      run: chmod +x gradlew
+
+    - name: Build with Gradle Wrapper
+      run: ./gradlew build
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
@@ -23,14 +43,15 @@ jobs:
       uses: docker/login-action@v2
       with:
         registry: https://index.docker.io/v1/
-        username: ${{ secrets.AzureAppService_ContainerUsername_5bd7ad7f87aa43b2aa7d5baa059defb1 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_e41c13950e014d4aa8b6e99143ae4ce0 }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Build and push container image to registry
+    - name: Build and push Docker image to registry
       uses: docker/build-push-action@v3
       with:
+        context: .
         push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_5bd7ad7f87aa43b2aa7d5baa059defb1 }}/fireandlight/catphish:${{ github.sha }}
+        tags: index.docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +69,4 @@ jobs:
         app-name: 'catphish-back-end'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_c8300dca4232405d9b621ccc88d527ac }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_5bd7ad7f87aa43b2aa7d5baa059defb1 }}/fireandlight/catphish:${{ github.sha }}'
+        images: 'index.docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest'
