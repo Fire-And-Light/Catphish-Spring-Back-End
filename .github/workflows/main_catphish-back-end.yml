@@ -51,7 +51,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: index.docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest
+        tags: index.docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:back
         file: ./Dockerfile
 
   deploy:
@@ -69,4 +69,4 @@ jobs:
         app-name: 'catphish-back-end'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_c8300dca4232405d9b621ccc88d527ac }}
-        images: 'index.docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:latest'
+        images: 'index.docker.io/${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_IMAGE }}:back'
